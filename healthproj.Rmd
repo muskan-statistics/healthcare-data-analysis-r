@@ -1,0 +1,117 @@
+---
+title: "Cleaning and Using Descriptive Statistics"
+author: "Muskan"
+output: html_document
+---
+
+Objective: To clean and perform exploratory analysis on  
+
+Data: According to the World Health Organization (WHO), Stroke is the 2nd leading cause of death globally, responsible for approximately 11% of total deaths. This dataset is used to predict whether a patient is likely to get stroke based on the input parameters like gender, age, various diseases, and smoking status. Each row in the data provides relavant information about the patient.
+
+Attribute Information-
+
+1) id: unique identifier
+2) gender: "Male", "Female" or "Other"
+3) age: age of the patient
+4) hypertension: 0 if the patient doesn't have hypertension, 1 if the patient has hypertension
+5) heart_disease: 0 if the patient doesn't have any heart diseases, 1 if the patient has a heart disease
+6) ever_married: "No" or "Yes"
+7) work_type: "children", "Govt_jov", "Never_worked", "Private" or "Self-employed"
+8) Residence_type: "Rural" or "Urban"
+9) avg_glucose_level: average glucose level in blood
+10) bmi: body mass index
+11) smoking_status: "formerly smoked", "never smoked", "smokes" or "Unknown"*
+12) stroke: 1 if the patient had a stroke or 0 if not
+
+#Importing Dataset: Dataset used for this analysis was obtained from Kaggle. The dataset qas imported into R usimg read.csv() function. To understand structure, dimensions and variables using following functions in chunk.
+
+```{r intr}
+doc<-read.csv("C:/Users/jasme/OneDrive/Desktop/R files/heathcare.csv")
+View(doc)
+head(doc)
+dim(doc)
+colnames(doc)
+doc_org<-doc
+```
+
+#Cleaning Dataset:
+
+BMI was initially recorded as a character variable. Non-numeric entries were converted to missing values, after which BMI was transformed into a numeric variable for analysis. Missing values were replaced using the mean value of BMI to maintain completeness of the dataset.
+
+```{r cl1}
+doc$bmi[doc$bmi==""]<-NA     #displaying missing vales as NA
+doc$bmi[doc$bmi=="NA"]<-NA   #displaying "NA" which are string in original dataset as NA
+doc$bmi<-as.numeric(doc$bmi) #Converting datatype into numeric
+typeof(doc$bmi)              #datatype
+sum(is.na(doc$bmi))          #total missing values
+colSums(is.na(doc))          #total missing values in each column
+doc$bmi[is.na(doc$bmi)] = mean(doc$bmi,na.rm = T)
+```
+
+Duplicate observations were checked using the Duplicated() function, which evaluates entire rows across all variables. The analysis confirmed the absence of duplicate records in the dataset, ensuring data integrity for further analysis.
+
+```{r cl2}
+doc[duplicated(doc), ]
+any(duplicated(doc))
+sum(duplicated(doc[ ,1:12]))
+```
+
+*Descriptive Statistics*: 
+
+In this section, descriptive statistical measures were used to summarize key characteristics of the dataset. Measures of central tendency, particularly the mean, were computed to understand the general distribution of numerical variables such as age, BMI, and average glucose level.
+
+The average age of patients who experienced a stroke was calculated to examine the age profile of stroke cases. Further subgroup analysis was conducted by categorizing patients based on smoking status to observe variations in mean age among different groups.
+
+These descriptive measures provide an initial understanding of the dataset and form the basis for subsequent exploratory and visual analysis.
+
+```{r an1}
+library(tidyverse)
+doc_fil1<-doc %>%
+  filter(
+    stroke==1,
+    smoking_status=="smokes"
+  )
+round(mean(doc_fil$age))
+
+doc_fil2<-doc %>% 
+  filter(
+    stroke==1,
+    smoking_status %in% c("never smoked", "formerly smoked")
+  )
+round(mean(doc_fil2$age))
+
+doc_sm<-doc %>% 
+  filter(
+    smoking_status %in% "smokes"
+  )
+mean(doc_sm$age)
+
+doc_nsm<-doc %>% 
+  filter(
+    smoking_status %in% c("never smoked", "formerly smoked")
+  )
+mean(doc_nsm$age)
+``` 
+
+Interpretation:- The above analysis suggested that smoking related stroke cases in the dataset tend to occur at relatively younger ages that is 63. Meanwhile, Non smokers and formerly smokers average is relatively older that is 70. Stroke cases usually occurred at older age because of factors like hypertension and heart disease.
+
+*Correlation Analysis*:
+To examine the linear association between Body Mass Index (BMI) and average glucose level, Pearson’s correlation coefficient was calculated. The correlation coefficient was found to be weak and positive (r ≈ 0.17), indicating a limited linear relationship between BMI and glucose levels.
+
+This suggests that while higher BMI values are associated with slightly higher glucose levels, the relationship is not strong. Therefore, BMI alone does not adequately explain the variation in glucose levels within the dataset.
+
+```{r an2}
+#Finding correlation:
+
+r<-cor(doc$avg_glucose_level, doc$bmi, method = "pearson")
+r
+#Scatter Plot:
+
+ggplot(doc, aes(x = avg_glucose_level, y = bmi)) + geom_point(alpha = 0.3, color = "hotpink") + geom_smooth(method = "lm", se = F, color = "brown4") + labs(
+  title = "Relationship between BMI and Average Glucose Level",
+  x = "Average Glucose Level",
+  y = "BMI"
+) + theme_minimal()
+```
+
+Interpretation: The scatter plot shows substantial variability in BMI across all glucose levels, with no strong linear pattern. Although a slight upward trend is visible, the wide dispersion of points explains the weak correlation observed between BMI and glucose.
